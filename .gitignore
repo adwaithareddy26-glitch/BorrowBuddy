@@ -1,0 +1,27 @@
+# Maven build files
+backend/target/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+*.env
+
+# Logs
+*.log
+
+# Java compiled files
+*.class
+
+# Temporary files
+*.tmp
+
+# Database dumps
+*.sql
