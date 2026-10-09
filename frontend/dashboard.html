@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Dashboard - BorrowBuddy</title>
+
+    <link rel="stylesheet" href="/css/dashboard.css">
+
+</head>
+
+<body>
+
+    <header class="navbar">
+
+        <div class="logo">
+            BorrowBuddy
+        </div>
+
+        <button id="logoutBtn" class="logout-btn">
+            Logout
+        </button>
+
+    </header>
+
+
+    <main class="dashboard">
+
+        <section class="welcome">
+
+            <h1>
+                Welcome, <span id="studentName">Student</span> 👋
+            </h1>
+
+            <p>
+                Manage your borrowed and shared items from here.
+            </p>
+
+        </section>
+        <section class="dashboard-cards">
+
+    <div class="dashboard-card">
+
+        <div class="card-icon">🔍</div>
+
+        <h2>Browse Items</h2>
+
+        <p>
+            Find useful items shared by other students.
+        </p>
+
+        <a href="#items" class="dashboard-btn">
+            Browse Items
+        </a>
+
+    </div>
+
+
+    <div class="dashboard-card">
+
+        <div class="card-icon">➕</div>
+
+        <h2>Add Item</h2>
+
+        <p>
+            Share an item that other students can borrow.
+        </p>
+
+        <a href="/add-item.html" class="dashboard-btn">
+            Add Item
+        </a>
+
+    </div>
+
+
+    <div class="dashboard-card">
+
+        <div class="card-icon">📦</div>
+
+        <h2>My Items</h2>
+
+        <p>
+            View the items you have shared with students.
+        </p>
+
+        <a href="/my-items.html" class="dashboard-btn">
+            My Items
+        </a>
+
+    </div>
+
+
+    <div class="dashboard-card">
+
+        <div class="card-icon">📩</div>
+
+        <h2>Borrow Requests</h2>
+
+        <p>
+            View requests from students who want to borrow your items.
+        </p>
+
+        <a href="/received-requests.html" class="dashboard-btn">
+            View Requests
+        </a>
+
+    </div>
+    <div class="dashboard-card">
+
+    <div class="card-icon">📋</div>
+
+    <h2>My Requests</h2>
+
+    <p>
+        Check the status of items you requested to borrow.
+    </p>
+
+    <a href="/my-requests.html" class="dashboard-btn">
+        My Requests
+    </a>
+
+</div>
+
+</section>
+
+
+       
+
+
+        <section id="items" class="items-section">
+
+    <h2>Available Items</h2>
+
+    <div class="filters">
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="🔍 Search items..."
+        >
+
+        <select id="categoryFilter">
+
+            <option value="">All Categories</option>
+
+            <option value="Electronics">Electronics</option>
+
+            <option value="Books">Books</option>
+
+            <option value="Stationery">Stationery</option>
+
+            <option value="Sports">Sports</option>
+
+            <option value="Other">Other</option>
+
+        </select>
+
+        <button id="clearFilters">
+            Clear Filters
+        </button>
+
+    </div>
+
+
+    <div id="itemsContainer" class="items-container">
+
+        <p>Loading items...</p>
+
+    </div>
+
+</section>
+
+    </main>
+
+
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/chatbot.js"></script>
+
+</body>
+
+</html>

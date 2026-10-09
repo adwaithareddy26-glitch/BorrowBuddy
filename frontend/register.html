@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Register - BorrowBuddy</title>
+
+    <link rel="stylesheet" href="/css/auth.css">
+
+</head>
+
+<body>
+
+    <div class="auth-container">
+
+        <div class="auth-card">
+
+            <h1>BorrowBuddy</h1>
+
+            <h2>Create Account</h2>
+
+            <p class="subtitle">
+                Join your campus lending community
+            </p>
+
+            <form id="registerForm">
+
+                <div class="form-group">
+
+                    <label for="name">
+                        Full Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        placeholder="Enter your name"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter your email"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="phone">
+                        Phone
+                    </label>
+
+                    <input
+                        type="text"
+                        id="phone"
+                        placeholder="Enter phone number"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Minimum 6 characters"
+                        required
+                    >
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="auth-button">
+
+                    Create Account
+
+                </button>
+
+            </form>
+
+            <p id="message"></p>
+
+            <p class="switch-page">
+
+                Already have an account?
+
+                <a href="/login.html">
+                    Login
+                </a>
+
+            </p>
+
+        </div>
+
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/chatbot.js"></script>
+
+</body>
+
+</html>
