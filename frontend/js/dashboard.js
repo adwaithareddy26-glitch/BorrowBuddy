@@ -4,518 +4,407 @@ const token = localStorage.getItem("borrowBuddyToken");
 let allItems = [];
 
 if (!userData || !token) {
-
     window.location.href = "/login.html";
-
 } else {
+    try {
+        const user = JSON.parse(userData);
 
-    const user = JSON.parse(userData);
+        document.getElementById("studentName").textContent =
+            user.name || "Student";
 
-    document.getElementById("studentName").textContent =
-        user.name;
-
-    loadItems();
+        loadItems();
+    } catch (error) {
+        console.error("Invalid user data:", error);
+        window.location.href = "/login.html";
+    }
 }
 
-
-// Load available items
+// Load items from backend
 async function loadItems() {
-
-    const container =
-        document.getElementById("itemsContainer");
+    const container = document.getElementById("itemsContainer");
 
     try {
-
-        const response = await fetch(
-            "/api/items",
-            {
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
+        const response = await fetch("/api/items", {
+            headers: {
+                Authorization: `Bearer ${token}`
             }
-        );
+        });
 
         if (!response.ok) {
-            throw new Error("Failed to load items");
+            throw new Error("Failed to load items: " + response.status);
         }
 
         allItems = await response.json();
-
         displayItems(allItems);
-
     } catch (error) {
-
-        console.error(error);
-
-        container.innerHTML =
-            "<p>Unable to load items.</p>";
+        console.error("Error loading items:", error);
+        container.textContent =
+            "Unable to load items. Please refresh the page.";
     }
 }
 
+// Safely create text elements
+function addText(parent, tag, text, className) {
+    const element = document.createElement(tag);
+    element.textContent = text || "";
+
+    if (className) {
+        element.className = className;
+    }
+
+    parent.appendChild(element);
+    return element;
+}
 
 // Display items
 function displayItems(items) {
+    const container = document.getElementById("itemsContainer");
+    container.replaceChildren();
 
-    const container =
-        document.getElementById("itemsContainer");
-
-
-    if (items.length === 0) {
-
-        container.innerHTML =
-            "<p>No items found.</p>";
-
+    if (!items || items.length === 0) {
+        addText(container, "p", "No items found.");
         return;
     }
 
-
-    container.innerHTML = "";
-
-
     items.forEach(item => {
-
-        const card =
-            document.createElement("div");
-
+        const card = document.createElement("div");
         card.className = "item-card";
 
+        addText(card, "h2", item.name || "Untitled item");
+        addText(card, "p", item.description || "");
 
-        card.innerHTML = `
-            <h2>${item.name}</h2>
+        // Display the product URL stored in imageUrl
+        const itemUrl = String(
+            item.imageUrl ||
+            item.url ||
+            item.itemUrl ||
+            item.itemURL ||
+            item.productUrl ||
+            item.productURL ||
+            ""
+        ).trim();
 
-            <p>${item.description}</p>
+        if (itemUrl) {
+            try {
+                const parsedUrl = new URL(itemUrl);
 
-            <p>
-                <strong>Category:</strong>
-                ${item.category || "Other"}
-            </p>
+                if (
+                    parsedUrl.protocol === "http:" ||
+                    parsedUrl.protocol === "https:"
+                ) {
+                    const urlParagraph = document.createElement("p");
+                    urlParagraph.className = "item-url";
 
-           <p>
-    <strong>Owner:</strong>
-    ${item.owner.name}
-</p>
+                    const label = document.createElement("strong");
+                    label.textContent = "Product URL: ";
+                    urlParagraph.appendChild(label);
 
-<p class="item-availability ${
-    item.available ? "available" : "borrowed"
-}">
-    <strong>Status:</strong>
+                    const link = document.createElement("a");
+                    link.href = parsedUrl.href;
+                    link.textContent = "View Item URL ↗";
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
 
-    ${item.available
-        ? "🟢 Available"
-        : "🔴 Currently Borrowed"
-    }
-</p>
+                    urlParagraph.appendChild(link);
+                    card.appendChild(urlParagraph);
+                }
+            } catch (error) {
+                console.warn(
+                    "Invalid URL for item:",
+                    item.name,
+                    itemUrl
+                );
+            }
+        }
 
-${
-    item.available
-        ? `
-            <button
-                class="dashboard-btn request-btn"
-                data-item-id="${item.id}">
-                Request Item
-            </button>
-          `
-        : `
-            <button
-                class="dashboard-btn request-btn"
-                disabled>
-                Item Already Borrowed
-            </button>
-          `
-}
+        // Category
+        addText(
+            card,
+            "p",
+            "Category: " + (item.category || "Other")
+        );
 
-            <div class="borrow-form"
-                 style="display:none;">
+        // Owner
+        addText(
+            card,
+            "p",
+            "Owner: " + (item.owner?.name || "Unknown")
+        );
 
-                <label>
-                    Borrow Date
-                </label>
+        // Availability status
+        const status = document.createElement("p");
 
-                <input
-                    type="date"
-                    class="borrow-date">
+        status.className =
+            "item-availability " +
+            (item.available ? "available" : "borrowed");
 
-                <label>
-                    Return Date
-                </label>
+        const statusLabel = document.createElement("strong");
+        statusLabel.textContent = "Status: ";
+        status.appendChild(statusLabel);
 
-                <input
-                    type="date"
-                    class="return-date">
+        status.appendChild(
+            document.createTextNode(
+                item.available
+                    ? "🟢 Available"
+                    : "🔴 Currently Borrowed"
+            )
+        );
 
-                <p>
-                    <strong>
-                        Borrowing Days:
-                    </strong>
+        card.appendChild(status);
 
-                    <span class="borrow-days">
-                        0
-                    </span>
-                </p>
+        // Request item button
+        const requestButton = document.createElement("button");
 
-                <button
-                    class="dashboard-btn confirm-request-btn">
-                    Confirm Borrow Request
-                </button>
+        requestButton.className = "dashboard-btn request-btn";
+        requestButton.dataset.itemId = item.id;
 
-                <p class="request-message"></p>
+        if (item.available) {
+            requestButton.textContent = "Request Item";
+        } else {
+            requestButton.textContent = "Item Already Borrowed";
+            requestButton.disabled = true;
+        }
 
-            </div>
-        `;
+        card.appendChild(requestButton);
 
+        // Borrowing form
+        const borrowForm = document.createElement("div");
 
+        borrowForm.className = "borrow-form";
+        borrowForm.style.display = "none";
+
+        addText(borrowForm, "label", "Borrow Date");
+
+        const borrowDate = document.createElement("input");
+        borrowDate.type = "date";
+        borrowDate.className = "borrow-date";
+        borrowForm.appendChild(borrowDate);
+
+        addText(borrowForm, "label", "Return Date");
+
+        const returnDate = document.createElement("input");
+        returnDate.type = "date";
+        returnDate.className = "return-date";
+        borrowForm.appendChild(returnDate);
+
+        const daysParagraph = document.createElement("p");
+
+        const daysLabel = document.createElement("strong");
+        daysLabel.textContent = "Borrowing Days: ";
+        daysParagraph.appendChild(daysLabel);
+
+        const daysValue = document.createElement("span");
+        daysValue.className = "borrow-days";
+        daysValue.textContent = "0";
+        daysParagraph.appendChild(daysValue);
+
+        borrowForm.appendChild(daysParagraph);
+
+        const confirmButton = document.createElement("button");
+
+        confirmButton.className =
+            "dashboard-btn confirm-request-btn";
+
+        confirmButton.textContent = "Confirm Borrow Request";
+        borrowForm.appendChild(confirmButton);
+
+        const message = document.createElement("p");
+        message.className = "request-message";
+        borrowForm.appendChild(message);
+
+        card.appendChild(borrowForm);
         container.appendChild(card);
-
     });
-
 
     setupRequestButtons();
 }
 
-
 // Search and category filter
 function filterItems() {
+    const searchText = document
+        .getElementById("searchInput")
+        .value.toLowerCase().trim();
 
-    const searchInput =
-        document.getElementById("searchInput");
+    const selectedCategory = document
+        .getElementById("categoryFilter")
+        .value.toLowerCase();
 
-    const categoryFilter =
-        document.getElementById("categoryFilter");
+    const filteredItems = allItems.filter(item => {
+        const name = (item.name || "").toLowerCase();
+        const description = (item.description || "").toLowerCase();
+        const category = (item.category || "Other").toLowerCase();
 
+        const matchesSearch =
+            name.includes(searchText) ||
+            description.includes(searchText);
 
-    const searchText =
-        searchInput.value
-            .toLowerCase()
-            .trim();
+        const matchesCategory =
+            selectedCategory === "" ||
+            category === selectedCategory;
 
-    const selectedCategory =
-        categoryFilter.value;
-
-
-    const filteredItems =
-        allItems.filter(item => {
-
-            const itemName =
-                (item.name || "")
-                    .toLowerCase();
-
-            const itemDescription =
-                (item.description || "")
-                    .toLowerCase();
-
-            const itemCategory =
-                item.category || "Other";
-
-
-            const matchesSearch =
-                itemName.includes(searchText) ||
-                itemDescription.includes(searchText);
-
-
-            const matchesCategory =
-                selectedCategory === "" ||
-                itemCategory.toLowerCase() ===
-                selectedCategory.toLowerCase();
-
-
-            return matchesSearch &&
-                   matchesCategory;
-
-        });
-
+        return matchesSearch && matchesCategory;
+    });
 
     displayItems(filteredItems);
 }
 
+document.getElementById("searchInput")
+    .addEventListener("input", filterItems);
 
-// Search input
-document
-    .getElementById("searchInput")
-    .addEventListener(
-        "input",
-        filterItems
-    );
+document.getElementById("categoryFilter")
+    .addEventListener("change", filterItems);
 
+document.getElementById("clearFilters")
+    .addEventListener("click", () => {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("categoryFilter").value = "";
+        displayItems(allItems);
+    });
 
-// Category filter
-document
-    .getElementById("categoryFilter")
-    .addEventListener(
-        "change",
-        filterItems
-    );
-
-
-// Clear filters
-document
-    .getElementById("clearFilters")
-    .addEventListener(
-        "click",
-        function () {
-
-            document.getElementById(
-                "searchInput"
-            ).value = "";
-
-            document.getElementById(
-                "categoryFilter"
-            ).value = "";
-
-            displayItems(allItems);
-        }
-    );
-
-
-// Request button setup
+// Borrow request buttons
 function setupRequestButtons() {
+    document.querySelectorAll(".request-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            if (button.disabled) return;
 
-    document
-        .querySelectorAll(".request-btn")
-        .forEach(button => {
+            const card = button.closest(".item-card");
+            const form = card.querySelector(".borrow-form");
 
-            button.addEventListener(
-                "click",
-                function () {
+            form.style.display = "block";
+            button.style.display = "none";
 
-                    const form =
-                        this.parentElement
-                            .querySelector(".borrow-form");
+            const borrowDate = form.querySelector(".borrow-date");
+            const returnDate = form.querySelector(".return-date");
+            const message = form.querySelector(".request-message");
 
+            const confirmButton = form.querySelector(
+                ".confirm-request-btn"
+            );
 
-                    form.style.display =
-                        "block";
+            // Today's local date
+            const now = new Date();
 
-                    this.style.display =
-                        "none";
+            const localToday = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, "0"),
+                String(now.getDate()).padStart(2, "0")
+            ].join("-");
 
+            borrowDate.min = localToday;
+            returnDate.min = localToday;
 
-                    const borrowDate =
-                        form.querySelector(
-                            ".borrow-date"
-                        );
+            // Calculate borrowing days
+            function calculateDays() {
+                if (!borrowDate.value || !returnDate.value) {
+                    form.querySelector(".borrow-days").textContent = "0";
+                    return;
+                }
 
-                    const returnDate =
-                        form.querySelector(
-                            ".return-date"
-                        );
+                const start = new Date(
+                    borrowDate.value + "T00:00:00"
+                );
 
+                const end = new Date(
+                    returnDate.value + "T00:00:00"
+                );
 
-                    // Today's date
-                    const today =
-                        new Date()
-                            .toISOString()
-                            .split("T")[0];
+                const difference = end - start;
 
+                const days = Math.round(
+                    difference / (1000 * 60 * 60 * 24)
+                );
 
-                    borrowDate.min =
-                        today;
+                form.querySelector(".borrow-days").textContent =
+                    days > 0 ? String(days) : "0";
+            }
 
-                    returnDate.min =
-                        today;
+            borrowDate.addEventListener("change", () => {
+                returnDate.min = borrowDate.value || localToday;
 
+                if (
+                    returnDate.value &&
+                    returnDate.value <= borrowDate.value
+                ) {
+                    returnDate.value = "";
+                }
 
-                    // Calculate borrowing days
-                    function calculateDays() {
+                calculateDays();
+            });
 
-                        if (
-                            borrowDate.value &&
-                            returnDate.value
-                        ) {
+            returnDate.addEventListener("change", calculateDays);
 
-                            const start =
-                                new Date(
-                                    borrowDate.value
-                                );
+            // Submit borrowing request
+            confirmButton.addEventListener("click", async () => {
+                const startDate = borrowDate.value;
+                const endDate = returnDate.value;
 
-                            const end =
-                                new Date(
-                                    returnDate.value
-                                );
+                if (!startDate || !endDate) {
+                    message.textContent =
+                        "Please select both borrow and return dates.";
+                    return;
+                }
 
+                if (endDate <= startDate) {
+                    message.textContent =
+                        "Return date must be after borrow date.";
+                    return;
+                }
 
-                            const difference =
-                                end - start;
+                confirmButton.disabled = true;
+                confirmButton.textContent = "Sending...";
+                message.textContent = "";
 
+                try {
+                    const params = new URLSearchParams({
+                        itemId: button.dataset.itemId,
+                        borrowDate: startDate,
+                        returnDate: endDate
+                    });
 
-                            const days =
-                                Math.ceil(
-                                    difference /
-                                    (1000 * 60 * 60 * 24)
-                                );
-
-
-                            form.querySelector(
-                                ".borrow-days"
-                            ).textContent =
-                                days > 0
-                                    ? days
-                                    : 0;
+                    const response = await fetch(
+                        "/api/requests?" + params.toString(),
+                        {
+                            method: "POST",
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
                         }
+                    );
+
+                    const responseText = await response.text();
+
+                    if (!response.ok) {
+                        message.textContent =
+                            responseText ||
+                            "Unable to send borrow request.";
+                        return;
                     }
 
+                    message.textContent =
+                        "Borrow request sent successfully!";
 
-                    borrowDate.addEventListener(
-                        "change",
-                        calculateDays
-                    );
+                    confirmButton.textContent = "Request Sent";
+                } catch (error) {
+                    console.error("Borrow request error:", error);
 
-
-                    returnDate.addEventListener(
-                        "change",
-                        calculateDays
-                    );
-
-
-                    // Confirm request
-                    form.querySelector(
-                        ".confirm-request-btn"
-                    ).addEventListener(
-                        "click",
-                        async function () {
-
-                            const startDate =
-                                borrowDate.value;
-
-                            const endDate =
-                                returnDate.value;
-
-
-                            const message =
-                                form.querySelector(
-                                    ".request-message"
-                                );
-
-
-                            if (
-                                !startDate ||
-                                !endDate
-                            ) {
-
-                                message.textContent =
-                                    "Please select both borrow and return dates.";
-
-                                return;
-                            }
-
-
-                            const start =
-                                new Date(
-                                    startDate
-                                );
-
-                            const end =
-                                new Date(
-                                    endDate
-                                );
-
-
-                            if (end <= start) {
-
-                                message.textContent =
-                                    "Return date must be after borrow date.";
-
-                                return;
-                            }
-
-
-                            try {
-
-                                this.disabled =
-                                    true;
-
-                                this.textContent =
-                                    "Sending...";
-
-
-                                const response =
-                                    await fetch(
-                                        `/api/requests?itemId=${button.dataset.itemId}` +
-                                        `&borrowDate=${startDate}` +
-                                        `&returnDate=${endDate}`,
-                                        {
-                                            method: "POST",
-
-                                            headers: {
-                                                "Authorization":
-                                                    `Bearer ${token}`
-                                            }
-                                        }
-                                    );
-
-
-                                const text =
-                                    await response.text();
-
-
-                                if (!response.ok) {
-
-                                    message.textContent =
-                                        text;
-
-                                    this.disabled =
-                                        false;
-
-                                    this.textContent =
-                                        "Confirm Borrow Request";
-
-                                    return;
-                                }
-
-
-                                message.textContent =
-                                    "Borrow request sent successfully!";
-
-
-                                message.textContent =
-    "Borrow request sent successfully!";
-
-this.textContent =
-    "Request Again";
-
-this.disabled =
-    false;
-
-
-                            } catch (error) {
-
-                                console.error(error);
-
-                                message.textContent =
-                                    "Unable to connect to server.";
-
-                                this.disabled =
-                                    false;
-
-                                this.textContent =
-                                    "Confirm Borrow Request";
-                            }
-
-                        }
-                    );
-
+                    message.textContent =
+                        "Unable to connect to server.";
+                } finally {
+                    if (confirmButton.textContent !== "Request Sent") {
+                        confirmButton.disabled = false;
+                        confirmButton.textContent =
+                            "Confirm Borrow Request";
+                    }
                 }
-            );
-
+            });
         });
+    });
 }
 
-
 // Logout
-document
-    .getElementById("logoutBtn")
-    .addEventListener(
-        "click",
-        function () {
+document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("borrowBuddyToken");
+    localStorage.removeItem("borrowBuddyUser");
 
-            localStorage.removeItem(
-                "borrowBuddyToken"
-            );
-
-            localStorage.removeItem(
-                "borrowBuddyUser"
-            );
-
-            window.location.href =
-                "/login.html";
-        }
-    );
+    window.location.href = "/login.html";
+});
