@@ -11,9 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/requests")
@@ -33,8 +33,7 @@ public class BorrowRequestController {
         this.userRepository = userRepository;
     }
 
-
-    // Create a borrow request
+    // Create a borrowing request
     @PostMapping
     public ResponseEntity<?> createRequest(
             @RequestParam Long itemId,
@@ -50,99 +49,66 @@ public class BorrowRequestController {
                 .orElseThrow(() ->
                         new RuntimeException("Item not found"));
 
-
-        // Prevent requesting your own item
+        // Prevent borrowing your own item
         if (item.getOwner().getId().equals(requester.getId())) {
-
             return ResponseEntity.badRequest()
                     .body("You cannot request your own item");
         }
 
-
-        // Check item availability
-        if (!item.isAvailable()) {
-
-            return ResponseEntity.badRequest()
-                    .body("This item is not available");
-        }
-
-
-        // Prevent duplicate pending request
+        // Prevent duplicate requests for the same item
         boolean alreadyRequested =
-                requestRepository
-                        .existsByItemIdAndRequesterIdAndStatus(
-                                itemId,
-                                requester.getId(),
-                                "PENDING"
-                        );
+        requestRepository.alreadyRequestedItem(
+                itemId, requester.getId());
 
         if (alreadyRequested) {
-
             return ResponseEntity.badRequest()
                     .body("You have already requested this item");
         }
 
+        // Check item availability
+        if (!item.isAvailable()) {
+            return ResponseEntity.badRequest()
+                    .body("This item is not available");
+        }
 
         try {
+            LocalDate startDate = LocalDate.parse(borrowDate);
+            LocalDate endDate = LocalDate.parse(returnDate);
 
-            LocalDate startDate =
-                    LocalDate.parse(borrowDate);
-
-            LocalDate endDate =
-                    LocalDate.parse(returnDate);
-
-
-            // Borrow date cannot be in the past
             if (startDate.isBefore(LocalDate.now())) {
-
                 return ResponseEntity.badRequest()
                         .body("Borrow date cannot be in the past");
             }
 
-
-            // Return date must be after borrow date
             if (!endDate.isAfter(startDate)) {
-
                 return ResponseEntity.badRequest()
                         .body("Return date must be after borrow date");
             }
 
+            long days = ChronoUnit.DAYS.between(
+                    startDate, endDate);
 
-            // Calculate number of borrowing days
-            long days =
-                    ChronoUnit.DAYS.between(
-                            startDate,
-                            endDate
-                    );
-
-
-            BorrowRequest request =
-                    new BorrowRequest();
-
+            BorrowRequest request = new BorrowRequest();
             request.setItem(item);
             request.setRequester(requester);
             request.setStatus("PENDING");
-
             request.setBorrowDate(startDate);
             request.setReturnDate(endDate);
             request.setBorrowDays((int) days);
             request.setPenalty(0.0);
-
 
             BorrowRequest savedRequest =
                     requestRepository.save(request);
 
             return ResponseEntity.ok(savedRequest);
 
-        } catch (Exception e) {
-
+        } catch (java.time.format.DateTimeParseException e) {
             return ResponseEntity.badRequest()
                     .body("Invalid date format. Use YYYY-MM-DD");
         }
     }
 
-
-    // Get requests sent by logged-in student
+    // View my borrowing requests
     @GetMapping("/my-requests")
     public ResponseEntity<List<BorrowRequest>> getMyRequests(
             @AuthenticationPrincipal String email) {
@@ -153,13 +119,10 @@ public class BorrowRequestController {
 
         return ResponseEntity.ok(
                 requestRepository.findByRequesterId(
-                        requester.getId()
-                )
-        );
+                        requester.getId()));
     }
 
-
-    // Get requests received by logged-in item owner
+    // View requests received for my items
     @GetMapping("/received")
     public ResponseEntity<List<BorrowRequest>> getReceivedRequests(
             @AuthenticationPrincipal String email) {
@@ -170,13 +133,10 @@ public class BorrowRequestController {
 
         return ResponseEntity.ok(
                 requestRepository.findByItemOwnerId(
-                        owner.getId()
-                )
-        );
+                        owner.getId()));
     }
 
-
-    // Approve or reject a borrow request
+    // Approve or reject a request
     @PutMapping("/{requestId}/status")
     public ResponseEntity<?> updateRequestStatus(
             @PathVariable Long requestId,
@@ -187,20 +147,16 @@ public class BorrowRequestController {
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
-        BorrowRequest request =
-                requestRepository.findById(requestId)
-                        .orElseThrow(() ->
-                                new RuntimeException("Request not found"));
+        BorrowRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() ->
+                        new RuntimeException("Request not found"));
 
-
-        // Only the item owner can approve/reject
         if (!request.getItem().getOwner().getId()
                 .equals(owner.getId())) {
 
             return ResponseEntity.status(403)
                     .body("You are not allowed to update this request");
         }
-
 
         if (!status.equalsIgnoreCase("APPROVED")
                 && !status.equalsIgnoreCase("REJECTED")) {
@@ -209,27 +165,22 @@ public class BorrowRequestController {
                     .body("Status must be APPROVED or REJECTED");
         }
 
+        if (!request.getStatus().equals("PENDING")) {
+            return ResponseEntity.badRequest()
+                    .body("Only pending requests can be updated");
+        }
 
         request.setStatus(status.toUpperCase());
 
         Item item = request.getItem();
 
-
         if (status.equalsIgnoreCase("APPROVED")) {
-
             item.setAvailable(false);
-
-            itemRepository.save(item);
-        }
-
-
-        if (status.equalsIgnoreCase("REJECTED")) {
-
+        } else {
             item.setAvailable(true);
-
-            itemRepository.save(item);
         }
 
+        itemRepository.save(item);
 
         BorrowRequest updatedRequest =
                 requestRepository.save(request);
@@ -237,8 +188,7 @@ public class BorrowRequestController {
         return ResponseEntity.ok(updatedRequest);
     }
 
-
-    // Return borrowed item
+    // Return a borrowed item
     @PutMapping("/{requestId}/return")
     public ResponseEntity<?> returnItem(
             @PathVariable Long requestId,
@@ -248,13 +198,10 @@ public class BorrowRequestController {
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
-        BorrowRequest request =
-                requestRepository.findById(requestId)
-                        .orElseThrow(() ->
-                                new RuntimeException("Request not found"));
+        BorrowRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() ->
+                        new RuntimeException("Request not found"));
 
-
-        // Only the borrower can return the item
         if (!request.getRequester().getId()
                 .equals(requester.getId())) {
 
@@ -262,53 +209,29 @@ public class BorrowRequestController {
                     .body("You are not allowed to return this item");
         }
 
-
-        // Only approved requests can be returned
         if (!request.getStatus().equals("APPROVED")) {
-
             return ResponseEntity.badRequest()
                     .body("Only an approved request can be returned");
         }
 
+        LocalDate actualReturnDate = LocalDate.now();
+        request.setActualReturnDate(actualReturnDate);
 
-        // Today's date
-        LocalDate actualReturnDate =
-                LocalDate.now();
-
-        request.setActualReturnDate(
-                actualReturnDate
-        );
-
-
-        // Calculate late days
         long lateDays = 0;
 
-        if (actualReturnDate.isAfter(
-                request.getReturnDate())) {
-
+        if (actualReturnDate.isAfter(request.getReturnDate())) {
             lateDays = ChronoUnit.DAYS.between(
-                    request.getReturnDate(),
-                    actualReturnDate
-            );
+                    request.getReturnDate(), actualReturnDate);
         }
 
-
-        // ₹10 penalty for each late day
-        double penalty =
-                lateDays * 10.0;
+        double penalty = lateDays * 10.0;
 
         request.setPenalty(penalty);
-
         request.setStatus("RETURNED");
 
-
-        // Make item available again
         Item item = request.getItem();
-
         item.setAvailable(true);
-
         itemRepository.save(item);
-
 
         BorrowRequest updatedRequest =
                 requestRepository.save(request);

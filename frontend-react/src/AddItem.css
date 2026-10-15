@@ -1,0 +1,82 @@
+
+.add-item-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f0ff, #fff1f5, #eefaff);
+  font-family: Arial, sans-serif;
+  color: #292344;
+}
+
+.add-item-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 7%;
+  background: white;
+  box-shadow: 0 3px 15px rgba(40, 30, 80, 0.08);
+}
+
+.add-item-navbar h2 {
+  margin: 0;
+  color: #7041c4;
+}
+
+.add-item-navbar button,
+.add-item-card button {
+  border: none;
+  border-radius: 9px;
+  padding: 12px 18px;
+  background: #7041c4;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.add-item-card button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.add-item-main {
+  width: 90%;
+  max-width: 600px;
+  margin: 40px auto;
+}
+
+.add-item-card {
+  background: white;
+  padding: 30px;
+  border-radius: 18px;
+  box-shadow: 0 5px 20px rgba(40, 30, 80, 0.08);
+}
+
+.add-item-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.add-item-card input,
+.add-item-card textarea,
+.add-item-card select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd5ed;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.add-item-card textarea {
+  resize: vertical;
+}
+
+.add-item-card form button {
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .add-item-card {
+    padding: 22px;
+  }
+}
