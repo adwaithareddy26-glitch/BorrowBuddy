@@ -1,4 +1,3 @@
-
 package com.borrowbuddy.security;
 
 import org.springframework.context.annotation.Bean;
@@ -33,13 +32,19 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(
-                List.of("http://localhost:5173")
-        );
+        // Allow local development and deployed React frontend
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "https://borrow-buddy-rosy.vercel.app"
+        ));
 
-        configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        );
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+        ));
 
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -77,10 +82,10 @@ public class SecurityConfig {
                                 "/js/**"
                         ).permitAll()
 
-                        // Login and registration APIs
+                        // Allow login and registration without JWT
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // All other APIs require JWT
+                        // Other endpoints require authentication
                         .anyRequest().authenticated()
                 )
 
